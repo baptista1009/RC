@@ -45,7 +45,7 @@ int validate_port(char *port) {
     if (port == NULL || strlen(port) == 0 || strlen(port) > 5) {
         return 0; // Porta inválida
     }
-    for (int i = 0; i < strlen(port); i++) {
+    for (size_t i = 0; i < strlen(port); i++) {
         if (!isdigit(port[i])) {
             return 0; // Porta inválida
         }
@@ -74,13 +74,13 @@ void process_arguments(int argc, char *argv[], char **peerport, char **ds_ip, ch
     }
 
     if (*peerport == NULL) {
-        fprintf(stderr, "Erro: A porta do peer é obrigatória.\n");
+        fprintf(stderr, "Error: the peer port is required.\n");
         print_usage(argv[0]);
         exit(EXIT_FAILURE);
     }
 
     if (!validate_port(*peerport)) {
-        fprintf(stderr, "Erro: Porta do peer inválida.\n");
+        fprintf(stderr, "Error: invalid peer port.\n");
         exit(EXIT_FAILURE);
     }
 }
@@ -129,7 +129,7 @@ ssize_t send_request(int fd, struct addrinfo *res, char *msg, char *buffer, int 
     return n;
 }
 
-void RLI_response (char *buffer, Session *session) {
+void RLI_response (char *buffer, Session *session, char *uid, char *password) {
     char status[16];
 
     if (sscanf(buffer, "RLI %15s", status) != 1) {
@@ -210,18 +210,18 @@ void handle_login(int fd, struct addrinfo *res, Session *session, char *peerport
     char *password = strtok(NULL, " \t");
 
     if (!uid || !password) {
-        printf("Uso correto: login UID password[cite: 2]\n");
+        printf("Correct usage: login UID password\n");
         return;
     }
     if (!validate_uid(uid) || !validate_password(password)) {
-        printf("Erro: O UID deve ter 6 dígitos e a password exatamente 8 caracteres alfanuméricos[cite: 2].\n");
+        printf("Error: UID must have 6 digits and password exactly 8 alphanumeric characters.\n");
         return;
     }
 
     char msg[BUFFER_SIZE];
     char response[BUFFER_SIZE];
     
-    // Construir a mensagem LIN UID password peerTCPport[cite: 2]
+    // Construir a mensagem LIN UID password peerTCPport
     snprintf(msg, sizeof(msg), "LIN %s %s %s\n", uid, password, peerport);
 
     if (send_request(fd, res, msg, response, sizeof(response)) != -1) {
@@ -231,14 +231,14 @@ void handle_login(int fd, struct addrinfo *res, Session *session, char *peerport
 
 void handle_logout(int fd, struct addrinfo *res, Session *session) {
     if (!session->logged_in) {
-        printf("Erro: Nenhum utilizador com sessão iniciada.\n");
+        printf("Error: no user is currently logged in.\n");
         return;
     }
 
     char msg[BUFFER_SIZE];
     char response[BUFFER_SIZE];
     
-    // Construir a mensagem LOU UID password[cite: 2]
+    // Construir a mensagem LOU UID password
     snprintf(msg, sizeof(msg), "LOU %s %s\n", session->uid, session->password);
 
     if (send_request(fd, res, msg, response, sizeof(response)) != -1) {
@@ -248,14 +248,14 @@ void handle_logout(int fd, struct addrinfo *res, Session *session) {
 
 void handle_unregister(int fd, struct addrinfo *res, Session *session) {
     if (!session->logged_in) {
-        printf("Erro: Deve estar autenticado para executar o unregister.\n");
+        printf("Error: you must be logged in to run unregister.\n");
         return;
     }
 
     char msg[BUFFER_SIZE];
     char response[BUFFER_SIZE];
     
-    // Construir a mensagem UNR UID password[cite: 2]
+    // Construir a mensagem UNR UID password
     snprintf(msg, sizeof(msg), "UNR %s %s\n", session->uid, session->password);
 
     if (send_request(fd, res, msg, response, sizeof(response)) != -1) {
@@ -265,10 +265,10 @@ void handle_unregister(int fd, struct addrinfo *res, Session *session) {
 
 int handle_exit(Session *session) {
     if (session->logged_in) {
-        printf("Erro: Deve efetuar logout antes de sair[cite: 2].\n");
+        printf("Error: You must logout before exiting.\n");
         return 0; // Não sai do programa
     } else {
-        printf("A encerrar a aplicação...\n");
+        printf("Shutting down the application...\n");
         return 1; // Sai do ciclo
     }
 }
@@ -290,8 +290,8 @@ int main(int argc, char *argv[]) {
     Session session = {"", "", 0};
     char line[BUFFER_SIZE];
 
-    printf(" NetBox Client Iniciado (Fase I) \n");
-    printf("Comandos disponíveis: login UID password, logout, unregister, exit\n ");    
+    printf(" NetBox Client Started (Phase I) \n");
+    printf("Available commands: login UID password, logout, unregister, exit\n ");    
 
     while (fgets(line, sizeof(line), stdin) != NULL) {
         line[strcspn(line, "\n")] = 0; 
@@ -312,7 +312,7 @@ int main(int argc, char *argv[]) {
                 break; 
             }
         } else {
-            printf("Comando desconhecido: %s\n", command);
+            printf("Unknown command: %s\n", command);
         }
     }
     freeaddrinfo(res);

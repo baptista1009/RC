@@ -1,4 +1,3 @@
-// Para garantir que o comando make compila o programa corretamente e gera o executável "./user"
 
 CC = gcc
 CFLAGS = -Wall -Wextra -g
