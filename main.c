@@ -6,6 +6,7 @@
 #include <sys/socket.h>
 #include <netdb.h>
 #include <ctype.h>
+#include <signal.h>
 
 #define DEFAULT_DS_IP "193.136.138.142"  // IP do "tejo"
 #define DEFAULT_DS_PORT "59000"        // Porta do "tejo"
@@ -20,6 +21,20 @@ typedef struct {
 void print_usage(char *program_name) {
     fprintf(stderr, "Uso: %s -m peerport [-n DSIP] [-p DSport]\n", program_name);
 }
+
+static int g_fd = -1;
+static struct addrinfo *g_res = NULL;
+
+void handle_sigint(int signal) {
+    (void)signal;
+    printf("\nCaught SIGINT. Shutting down cleanly...\n");
+    if (g_res != NULL)
+        freeaddrinfo(g_res);
+    if (g_fd != -1)
+        close(g_fd);
+    exit(0);
+}
+
 
 int validate_uid(char *uid) {
     if (strlen(uid) != 6) 
@@ -208,13 +223,29 @@ void RUR_response (char *buffer, Session *session){
 void handle_login(int fd, struct addrinfo *res, Session *session, char *peerport) {
     char *uid = strtok(NULL, " \t");
     char *password = strtok(NULL, " \t");
+    char *extra = strtok(NULL, " \t");
 
     if (!uid || !password) {
         printf("Correct usage: login UID password\n");
         return;
     }
-    if (!validate_uid(uid) || !validate_password(password)) {
-        printf("Error: UID must have 6 digits and password exactly 8 alphanumeric characters.\n");
+    if (!validate_password(password)) {
+        printf("Error: Password must have exactly 8 alphanumeric characters.\n");
+        return;
+    }
+
+    if (extra) {
+        printf("Error: Too many arguments for login command.\n");
+        return;
+    }
+
+    if (!validate_uid(uid)) {
+        printf("Error: UID must have 6 digits.\n");
+        return;
+    }
+
+    if (session->logged_in) {
+        printf("Error: a user is already logged in. Please logout first.\n");
         return;
     }
 
@@ -230,6 +261,12 @@ void handle_login(int fd, struct addrinfo *res, Session *session, char *peerport
 }
 
 void handle_logout(int fd, struct addrinfo *res, Session *session) {
+    char *extra = strtok(NULL, " \t");
+    if (extra) {
+        printf("Error: Too many arguments for logout command.\n");
+        return;
+    }
+
     if (!session->logged_in) {
         printf("Error: no user is currently logged in.\n");
         return;
@@ -247,6 +284,12 @@ void handle_logout(int fd, struct addrinfo *res, Session *session) {
 }
 
 void handle_unregister(int fd, struct addrinfo *res, Session *session) {
+    char *extra = strtok(NULL, " \t");
+    if (extra) {
+        printf("Error: Too many arguments for unregister command.\n");
+        return;
+    }
+
     if (!session->logged_in) {
         printf("Error: you must be logged in to run unregister.\n");
         return;
@@ -264,6 +307,12 @@ void handle_unregister(int fd, struct addrinfo *res, Session *session) {
 }
 
 int handle_exit(Session *session) {
+    char *extra = strtok(NULL, " \t");
+    if (extra != NULL) {
+        printf("Error: too many arguments. Correct usage: exit\n");
+        return 0;
+    }
+
     if (session->logged_in) {
         printf("Error: You must logout before exiting.\n");
         return 0; // Não sai do programa
@@ -287,11 +336,15 @@ int main(int argc, char *argv[]) {
         exit(EXIT_FAILURE);
     }
 
+    g_fd = fd;
+    g_res = res;
+    signal(SIGINT, handle_sigint);
+
     Session session = {"", "", 0};
     char line[BUFFER_SIZE];
 
-    printf(" NetBox Client Started (Phase I) \n");
-    printf("Available commands: login UID password, logout, unregister, exit\n ");    
+    printf("NetBox Client Started (Phase I) \n");
+    printf("Available commands: login UID password, logout, unregister, exit\n");    
 
     while (fgets(line, sizeof(line), stdin) != NULL) {
         line[strcspn(line, "\n")] = 0; 
