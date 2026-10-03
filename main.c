@@ -7,6 +7,7 @@
 #include <netdb.h>
 #include <ctype.h>
 #include <signal.h>
+#include <sys/stat.h>
 
 #define DEFAULT_DS_IP "193.136.138.142"  // IP do "tejo"
 #define DEFAULT_DS_PORT "59000"        // Porta do "tejo"
@@ -67,6 +68,34 @@ int validate_port(char *port) {
     }
     return 1;
 }
+
+// NOVO
+int validate_filename(char *filename) {
+    if (filename == NULL || strlen(filename) > 24)
+        return 0;
+    
+    char *dot = strrchr(filename, '.');
+    if (dot == NULL || dot == filename)
+        return 0; // Sem extensão ou ponto no início
+    
+    // Verificar extensão de 3 caracteres alfanuméricos
+    if (strlen(dot + 1) != 3)
+        return 0;
+    for (int i = 0; i < 3; i++) {
+        if (!isalnum(dot[1 + i]))
+            return 0;
+    }
+
+    // Verificar o nome base (antes do ponto)
+    size_t base_len = dot - filename;
+    for (size_t i = 0; i < base_len; i++) {
+        char c = filename[i];
+        if (!isalnum(c) && c != '-' && c != '_')
+            return 0;
+    }
+    return 1;
+}
+
 
 void process_arguments(int argc, char *argv[], char **peerport, char **ds_ip, char **ds_port) {
     int opt;
@@ -320,6 +349,30 @@ int handle_exit(Session *session) {
         printf("Shutting down the application...\n");
         return 1; // Sai do ciclo
     }
+}
+
+// NOVO
+void RPB_responde(char *buffer) {
+    char status[16];
+    if (sscanf(buffer, "RPB %15s", status) != 1) { printf("Invalid reply from DS.\n"); return; }
+    if (strcmp(status, "OK") == 0) printf("Successful publication.\n");
+    else if (strcmp(status, "NLG") == 0) printf("User not logged in.\n");
+    else if (strcmp(status, "UNR") == 0) printf("User not registered.\n");
+    else if (strcmp(status, "WRP") == 0) printf("Incorrect password.\n");
+    else if (strcmp(status, "NOK") == 0) printf("Unsuccessful publication.\n");
+    else printf("Unknown reply from DS: %s\n", status);
+}
+
+// NOVO
+void RRM_response(char *buffer) {
+    char status[16];
+    if (sscanf(buffer, "RRM %15s", status) != 1) { printf("Invalid reply from DS.\n"); return; }
+    if (strcmp(status, "OK") == 0) printf("Successful removal.\n");
+    else if (strcmp(status, "NLG") == 0) printf("User not logged in.\n");
+    else if (strcmp(status, "UNR") == 0) printf("User not registered.\n");
+    else if (strcmp(status, "WRP") == 0) { printf("Incorrect password.\n"); }
+    else if (strcmp(status, "NOK") == 0) printf("Resource not found.\n");
+    else printf("Unknown reply from DS: %s\n", status);
 }
 
 
