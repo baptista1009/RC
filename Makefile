@@ -2,7 +2,7 @@ CC = gcc
 CFLAGS = -Wall -Wextra -g -MMD -MP \
          -I. -Ivalidate -Iargs -Inet -Iauth -Iresources
 
-SRCS = main.c $(wildcard validate/*.c args/*.c net/*.c auth/*.c resources/*.c)
+SRCS = main/main.c $(wildcard validate/*.c args/*.c net/*.c auth/*.c resources/*.c)
 OBJS = $(SRCS:.c=.o)
 
 all: user

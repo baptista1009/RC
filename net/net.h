@@ -10,4 +10,9 @@ int establish_connection(const char *ds_ip, const char *ds_port, struct addrinfo
 /* Envia msg ao DS e espera resposta (timeout 5s). Devolve n bytes ou -1. */
 ssize_t send_request(int fd, struct addrinfo *res, const char *msg, char *buffer, int buffer_size);
 
+/* Faz um pedido TCP completo: liga, envia, lê a resposta, fecha. 
+Ao contrário do UDP (um socket aberto para toda a sessão), aqui cria-se
+ uma ligação por pedido */
+int tcp_request(const char *ip, const char *port, const char *msg, char *buffer, int buffer_size);
+
 #endif

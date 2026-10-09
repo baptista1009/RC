@@ -30,6 +30,7 @@ int main(int argc, char *argv[]) {
     g_fd = fd;
     g_res = res;
     signal(SIGINT, handle_sigint);
+    signal(SIGPIPE, SIG_IGN);   /* write() num socket TCP fechado nao pode matar o programa */
 
     Session session = {"", "", 0};
     char line[BUFFER_SIZE];
@@ -49,6 +50,8 @@ int main(int argc, char *argv[]) {
         else if (strcmp(command, "unregister") == 0)  handle_unregister(fd, res, &session);
         else if (strcmp(command, "publish") == 0)     handle_publish(fd, res, &session);
         else if (strcmp(command, "remove") == 0)      handle_remove(fd, res, &session);
+        else if (strcmp(command, "list") == 0)        handle_list(fd, res);
+        else if (strcmp(command, "versions") == 0)    handle_versions(ds_ip, ds_port);
         else if (strcmp(command, "exit") == 0) {
             if (handle_exit(&session)) break;
         }
