@@ -15,7 +15,7 @@
 
 #define DEFAULT_DS_IP   "193.136.138.142"  /* IP do "tejo" */
 #define DEFAULT_DS_PORT "59000"            /* Porta do "tejo" */
-#define BUFFER_SIZE     128
+#define BUFFER_SIZE     2048
 #define MAX_FSIZE       10000000L
 
 typedef struct {
