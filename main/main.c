@@ -56,6 +56,7 @@ int main(int argc, char *argv[]) {
             if (handle_exit(&session)) break;
         }
         else printf("Unknown command: %s\n", command);
+        printf("\n");   // Para ser melhor visualmente a distinção dos comandos
     }
     freeaddrinfo(res);
     close(fd);
